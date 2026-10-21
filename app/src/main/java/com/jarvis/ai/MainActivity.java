@@ -201,16 +201,39 @@ public class MainActivity extends Activity {
     }
 
     private void setTtsLanguage() {
-        if (ttsReady && tts != null) {
-            Locale locale = language.startsWith("bn")
-                    ? new Locale("bn", "BD") : Locale.US;
-            int availability = tts.isLanguageAvailable(locale);
-            if (availability >= TextToSpeech.LANG_AVAILABLE) {
-                tts.setLanguage(locale);
-            } else {
-                setStatus(language.startsWith("bn")
-                        ? "এই ফোনে বাংলা voice নেই; English voice ব্যবহার করো।"
-                        : "English voice may not be available on this device.");
+        if (!ttsReady || tts == null) return;
+
+        Locale locale = language.startsWith("bn")
+                ? new Locale("bn", "BD") : Locale.US;
+
+        int availability = tts.isLanguageAvailable(locale);
+        if (availability < TextToSpeech.LANG_AVAILABLE) {
+            setStatus(language.startsWith("bn")
+                    ? "বাংলা voice ইনস্টল আছে কি না দেখো।"
+                    : "English voice is unavailable.");
+            return;
+        }
+
+        tts.setLanguage(locale);
+
+        if (tts.getVoices() != null) {
+            for (android.speech.tts.Voice voice : tts.getVoices()) {
+                String voiceName = voice.getName().toLowerCase(Locale.ROOT);
+                String voiceLanguage = voice.getLocale()
+                        .getLanguage().toLowerCase(Locale.ROOT);
+
+                boolean correctLanguage = language.startsWith("bn")
+                        ? voiceLanguage.equals("bn")
+                        : voiceLanguage.equals("en");
+
+                boolean femaleVoice = voiceName.contains("female")
+                        || voiceName.contains("woman");
+
+                if (correctLanguage && femaleVoice
+                        && !voice.isNetworkConnectionRequired()) {
+                    tts.setVoice(voice);
+                    break;
+                }
             }
         }
     }
